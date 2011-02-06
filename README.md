@@ -37,9 +37,7 @@ Here is a simple example:
 	        <inbound-endpoint address="vm://test" exchange-pattern="request-response"/>
 	        <cache:cache-processor cache-ref="ehcache" 
 	                               cachingModel-ref="cachingModel"/>
-	        <component>
-	            <singleton-object class="org.mule.module.cache.IncreasingNumberComponent"/>
-	        </component>
+	        ....
 	    </flow>
 	    
 	</mule>
@@ -57,9 +55,7 @@ cache based on Mule expressions:
                                cachingModel-ref="cachingModel"
                                cacheableExpression="#[xpath://cacheable[text() = 'true']]"
                                keyGeneratorExpression="#[xpath://key]"/>
-        <component>
-            <singleton-object class="org.mule.module.cache.IncreasingNumberComponent"/>
-        </component>
+        ...
     </flow>
 
 This will cache messages which match the following form and store the message in the cache
