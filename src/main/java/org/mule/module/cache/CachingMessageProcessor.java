@@ -11,7 +11,6 @@
 package org.mule.module.cache;
 
 import org.mule.api.DefaultMuleException;
-import org.mule.api.MuleContext;
 import org.mule.api.MuleEvent;
 import org.mule.api.MuleException;
 import org.mule.api.MuleMessage;
@@ -54,14 +53,6 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
 
     protected ServerNotificationHandler notificationHandler;
 
-    protected MuleContext muleContext;
-
-    public void setMuleContext(MuleContext context)
-    {
-        this.muleContext = context;
-        notificationHandler = muleContext.getNotificationManager();
-    }
-
     protected MuleEvent processNext(MuleEvent event) throws MuleException
     {
         if (next == null)
@@ -97,6 +88,8 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
 
     public void initialise() throws InitialisationException
     {
+        super.initialise();
+        
         if (keyGeneratorExpression != null && keyGenerator != null)
         {
             throw new InitialisationException(
