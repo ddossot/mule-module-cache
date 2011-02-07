@@ -66,6 +66,11 @@ with a key of '1'.
         <key>1</key>
     </message>
     
+Configuring your Cache
+======================
+Underneath Spring Modules is used to configure caches. To find out more about configuring
+a particular cache facade, see: http://wiki.apache.org/jackrabbit/Clustering.
+
 Using in Maven
 ==============
 To use in Maven, add the following dependency:

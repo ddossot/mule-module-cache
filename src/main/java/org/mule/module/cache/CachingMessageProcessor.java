@@ -16,6 +16,7 @@ import org.mule.api.MuleException;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Initialisable;
 import org.mule.api.lifecycle.InitialisationException;
+import org.mule.api.processor.MessageProcessor;
 import org.mule.api.transport.OutputHandler;
 import org.mule.api.transport.PropertyScope;
 import org.mule.config.i18n.MessageFactory;
@@ -193,5 +194,10 @@ public class CachingMessageProcessor extends AbstractInterceptingMessageProcesso
     public void setKeyGeneratorExpression(String keyGeneratorExpression)
     {
         this.keyGeneratorExpression = keyGeneratorExpression;
+    }
+    
+    public void setMessageProcessor(MessageProcessor messageProcessor)
+    {
+        this.next = messageProcessor;
     }
 }

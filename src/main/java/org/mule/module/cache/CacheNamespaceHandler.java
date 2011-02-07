@@ -9,7 +9,7 @@
  */
 package org.mule.module.cache;
 
-import org.mule.config.spring.parsers.specific.MessageProcessorDefinitionParser;
+import org.mule.config.spring.parsers.generic.ChildDefinitionParser;
 
 import org.springframework.beans.factory.xml.NamespaceHandlerSupport;
 
@@ -17,6 +17,8 @@ public class CacheNamespaceHandler extends NamespaceHandlerSupport
 {
     public void init()
     {
-        registerBeanDefinitionParser("cache-processor", new MessageProcessorDefinitionParser(CachingMessageProcessor.class));
+        ChildDefinitionParser parser = new ChildDefinitionParser("messageProcessor", CachingMessageProcessorFactoryBean.class);
+        registerBeanDefinitionParser("cache-processor", parser);
     }
+    
 }

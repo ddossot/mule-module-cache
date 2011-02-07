@@ -8,11 +8,11 @@
        xmlns:ehcache="http://www.springmodules.org/schema/ehcache"
        xsi:schemaLocation="
        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
-       http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.1/mule.xsd
-       http://www.mulesoft.org/schema/mule/test http://www.mulesoft.org/schema/mule/test/3.1/mule-test.xsd
-       http://www.mulesoft.org/schema/mule/cache http://www.mulesoft.org/schema/mule/cache/3.1/mule-cache.xsd
+       http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.2/mule.xsd
+       http://www.mulesoft.org/schema/mule/test http://www.mulesoft.org/schema/mule/test/3.2/mule-test.xsd
+       http://www.mulesoft.org/schema/mule/cache http://www.mulesoft.org/schema/mule/cache/3.2/mule-cache.xsd
        http://www.springmodules.org/schema/ehcache http://www.springmodules.org/schema/cache/springmodules-ehcache.xsd
-       http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/3.1/mule-s.xsd">
+       http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/3.2/mule-s.xsd">
 
     <spring:beans>
         <ehcache:config id="ehcache" 
@@ -27,10 +27,12 @@
     <flow name="CacheRouter">
         <inbound-endpoint address="vm://test" exchange-pattern="request-response"/>
         <cache:cache-processor cache-ref="ehcache" 
-                               cachingModel-ref="cachingModel"/>
-        <component>
-            <singleton-object class="org.mule.module.cache.IncreasingNumberComponent"/>
-        </component>
+                               cachingModel-ref="cachingModel">        
+            <component>
+                <singleton-object class="org.mule.module.cache.IncreasingNumberComponent"/>
+            </component>
+        </cache:cache-processor>
+        
     </flow>
     
 </mule>

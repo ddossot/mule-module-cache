@@ -17,6 +17,9 @@
     <xsd:complexType name="cacheProcessorType">
         <xsd:complexContent>
             <xsd:extension base="mule:abstractInterceptingMessageProcessorType">
+                <xsd:sequence>
+                    <xsd:group ref="mule:messageProcessorOrOutboundEndpoint" maxOccurs="unbounded"/>
+                </xsd:sequence>
                 <xsd:attribute name="cache-ref" type="xsd:string" use="required"/>
                 <xsd:attribute name="cachingModel-ref" type="xsd:string" use="required"/>
                 <xsd:attribute name="cacheableExpression" type="xsd:string" use="optional"/>

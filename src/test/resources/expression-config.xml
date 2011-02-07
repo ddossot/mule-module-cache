@@ -33,10 +33,11 @@
         <cache:cache-processor cache-ref="ehcache" 
                                cachingModel-ref="cachingModel"
                                cacheableExpression="#[xpath://cacheable[text() = 'true']]"
-                               keyGenerator-ref="xpathGenerator"/>
-        <component>
-            <singleton-object class="org.mule.module.cache.IncreasingNumberComponent"/>
-        </component>
+                               keyGenerator-ref="xpathGenerator">
+            <component>
+                <singleton-object class="org.mule.module.cache.IncreasingNumberComponent"/>
+            </component>
+        </cache:cache-processor>
     </flow>
     
     
@@ -45,10 +46,11 @@
         <cache:cache-processor cache-ref="ehcache" 
                                cachingModel-ref="cachingModel"
                                cacheableExpression="#[xpath://cacheable[text() = 'true']]"
-                               keyGeneratorExpression="#[xpath://key]"/>
-        <component>
-            <singleton-object class="org.mule.module.cache.IncreasingNumberComponent"/>
-        </component>
+                               keyGeneratorExpression="#[xpath://key]">
+            <component>
+                <singleton-object class="org.mule.module.cache.IncreasingNumberComponent"/>
+            </component>
+        </cache:cache-processor>        
     </flow>
     
 </mule>
