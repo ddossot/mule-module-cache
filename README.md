@@ -36,8 +36,9 @@ Here is a simple example:
 	    <flow name="CachedFlow">
 	        <inbound-endpoint address="vm://test" exchange-pattern="request-response"/>
 	        <cache:cache-processor cache-ref="ehcache" 
-	                               cachingModel-ref="cachingModel"/>
-	        ....
+	                               cachingModel-ref="cachingModel">
+	           ... message processors you want cached ...
+	        </cache:cache-processor>
 	    </flow>
 	    
 	</mule>
@@ -54,8 +55,9 @@ cache based on Mule expressions:
         <cache:cache-processor cache-ref="ehcache" 
                                cachingModel-ref="cachingModel"
                                cacheableExpression="#[xpath://cacheable[text() = 'true']]"
-                               keyGeneratorExpression="#[xpath://key]"/>
-        ...
+                               keyGeneratorExpression="#[xpath://key]">
+	           ... message processors you want cached ...
+        </cache:cache-processor>
     </flow>
 
 This will cache messages which match the following form and store the message in the cache
