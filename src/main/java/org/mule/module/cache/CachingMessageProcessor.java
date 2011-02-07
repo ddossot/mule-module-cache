@@ -11,41 +11,99 @@
 package org.mule.module.cache;
 
 import org.mule.api.DefaultMuleException;
+import org.mule.api.MuleContext;
 import org.mule.api.MuleEvent;
 import org.mule.api.MuleException;
 import org.mule.api.MuleMessage;
+import org.mule.api.context.notification.ServerNotificationHandler;
 import org.mule.api.lifecycle.Initialisable;
 import org.mule.api.lifecycle.InitialisationException;
+import org.mule.api.processor.InterceptingMessageProcessor;
 import org.mule.api.processor.MessageProcessor;
 import org.mule.api.transport.OutputHandler;
 import org.mule.api.transport.PropertyScope;
 import org.mule.config.i18n.MessageFactory;
-import org.mule.processor.AbstractInterceptingMessageProcessor;
+import org.mule.context.notification.MessageProcessorNotification;
+import org.mule.processor.AbstractMessageProcessorOwner;
+import org.mule.processor.chain.DefaultMessageProcessorChainBuilder;
 
 import java.io.InputStream;
 import java.io.Serializable;
+import java.util.List;
 
 import javax.xml.transform.stream.StreamSource;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springmodules.cache.CachingModel;
 import org.springmodules.cache.provider.CacheProviderFacade;
 
-public class CachingMessageProcessor extends AbstractInterceptingMessageProcessor 
-    implements Initialisable
+public class CachingMessageProcessor extends AbstractMessageProcessorOwner
+    implements Initialisable, InterceptingMessageProcessor
 {
+    protected Log logger = LogFactory.getLog(getClass());
+
     private CacheKeyGenerator keyGenerator;
     private CacheProviderFacade cacheProvider;
     private CachingModel cacheModel;
     private String cacheableExpression;
     private String keyGeneratorExpression;
-    
+    private List<MessageProcessor> messageProcessors;
+
+    protected MessageProcessor next;
+
+    protected ServerNotificationHandler notificationHandler;
+
+    protected MuleContext muleContext;
+
+    public void setMuleContext(MuleContext context)
+    {
+        this.muleContext = context;
+        notificationHandler = muleContext.getNotificationManager();
+    }
+
+    protected MuleEvent processNext(MuleEvent event) throws MuleException
+    {
+        if (next == null)
+        {
+            return event;
+        }
+        else
+        {
+            if (logger.isTraceEnabled())
+            {
+                logger.trace("Invoking next MessageProcessor: '" + next.getClass().getName() + "' ");
+            }
+
+            // note that we're firing event for the next in chain, not this MP
+            fireNotification(event, next, MessageProcessorNotification.MESSAGE_PROCESSOR_PRE_INVOKE);
+
+            final MuleEvent result = next.process(event);
+
+            fireNotification(event, next, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
+
+            return result;
+        }
+    }
+
+    protected void fireNotification(MuleEvent event, MessageProcessor processor, int action)
+    {
+        if (notificationHandler != null
+            && notificationHandler.isNotificationEnabled(MessageProcessorNotification.class))
+        {
+            notificationHandler.fireNotification(new MessageProcessorNotification(event, processor, action));
+        }
+    }
+
     public void initialise() throws InitialisationException
     {
         if (keyGeneratorExpression != null && keyGenerator != null)
         {
-            throw new InitialisationException(MessageFactory.createStaticMessage("Both a key generator and key generator expression cannot be specified at the same time."), this);
+            throw new InitialisationException(
+                MessageFactory.createStaticMessage("Both a key generator and key generator expression cannot be specified at the same time."),
+                this);
         }
-        
+
         if (keyGeneratorExpression != null)
         {
             keyGenerator = new ExpressionKeyGenerator();
@@ -62,8 +120,8 @@ public class CachingMessageProcessor extends AbstractInterceptingMessageProcesso
         if (!isCacheable(event))
         {
             return processNext(event);
-        }   
-            
+        }
+
         // Generate the key
         Serializable key = keyGenerator.generateKey(event);
 
@@ -71,7 +129,7 @@ public class CachingMessageProcessor extends AbstractInterceptingMessageProcesso
         {
             logger.debug("Got cache key " + key + " for event " + event);
         }
-        
+
         // see if we have a cached response
         MuleEvent cachedResponse = (MuleEvent) cacheProvider.getFromCache(key, cacheModel);
 
@@ -98,9 +156,11 @@ public class CachingMessageProcessor extends AbstractInterceptingMessageProcesso
     {
         if (cacheableExpression != null)
         {
-           return event.getMuleContext().getExpressionManager().evaluateBoolean(cacheableExpression, event.getMessage());
+            return event.getMuleContext()
+                .getExpressionManager()
+                .evaluateBoolean(cacheableExpression, event.getMessage());
         }
-     
+
         // if the user doesn't specify an expression, assume the message is cacheable
         return true;
     }
@@ -195,9 +255,22 @@ public class CachingMessageProcessor extends AbstractInterceptingMessageProcesso
     {
         this.keyGeneratorExpression = keyGeneratorExpression;
     }
-    
-    public void setMessageProcessor(MessageProcessor messageProcessor)
+
+    public void setMessageProcessors(List<MessageProcessor> messageProcessors) throws MuleException
     {
-        this.next = messageProcessor;
+        this.messageProcessors = messageProcessors;
+        this.next = new DefaultMessageProcessorChainBuilder().chain(messageProcessors).build();
     }
+
+    @Override
+    protected List<MessageProcessor> getOwnedMessageProcessors()
+    {
+        return messageProcessors;
+    }
+
+    public void setListener(MessageProcessor listener)
+    {
+        next = listener;
+    }
+
 }
