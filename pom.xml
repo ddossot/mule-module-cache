@@ -36,7 +36,6 @@
             <version>${mule.version}</version>
             <scope>test</scope>
         </dependency>
-        
         <dependency>
             <groupId>org.mule.tests</groupId>
             <artifactId>mule-tests-functional</artifactId>
@@ -50,12 +49,21 @@
             <version>2.3.1</version>
             <optional>true</optional>
         </dependency>
-        
+
         <dependency>
-          <groupId>net.sf.ehcache</groupId>
-          <artifactId>ehcache-web</artifactId>
-          <version>2.0.3</version>
-        </dependency>
+           <groupId>org.codehaus.httpcache4j</groupId>
+           <artifactId>httpcache4j-core</artifactId>
+           <version>3.2</version>
+           <optional>true</optional>
+       </dependency>
+
+       <dependency>
+           <groupId>org.codehaus.httpcache4j.resolvers</groupId>
+           <artifactId>resolvers-httpcomponents-httpclient</artifactId>
+           <version>3.2</version>
+           <optional>true</optional>
+       </dependency>
+        
         
         <dependency>
             <groupId>org.springmodules</groupId>
