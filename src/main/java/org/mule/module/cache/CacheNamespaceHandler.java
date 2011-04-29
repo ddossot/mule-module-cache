@@ -7,18 +7,20 @@
  * license, a copy of which has been included with this distribution in the
  * LICENSE.txt file.
  */
+
 package org.mule.module.cache;
 
 import org.mule.config.spring.parsers.generic.ChildDefinitionParser;
-
 import org.springframework.beans.factory.xml.NamespaceHandlerSupport;
 
 public class CacheNamespaceHandler extends NamespaceHandlerSupport
 {
     public void init()
     {
-        ChildDefinitionParser parser = new ChildDefinitionParser("messageProcessor", CachingMessageProcessor.class);
-        registerBeanDefinitionParser("cache-processor", parser);
+        registerBeanDefinitionParser("cache-processor", new ChildDefinitionParser("messageProcessor",
+            CachingMessageProcessor.class));
+        registerBeanDefinitionParser("http-cache-processor", new ChildDefinitionParser(
+            "cachingMessageProcessor", HttpCachingMessageProcessor.class));
     }
-    
+
 }

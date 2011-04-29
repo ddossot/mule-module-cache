@@ -28,6 +28,13 @@
             </xsd:extension>
         </xsd:complexContent>
     </xsd:complexType>
-    
 
+    <xsd:element name="http-cache-processor" type="httpCacheProcessorType" substitutionGroup="mule:abstract-message-processor"/>
+    <xsd:complexType name="httpCacheProcessorType">
+        <xsd:complexContent>
+            <xsd:extension base="mule:abstractMessageProcessorType">
+                <xsd:attribute name="http-cache-ref" type="xsd:string" use="required"/>
+            </xsd:extension>
+        </xsd:complexContent>
+    </xsd:complexType>
 </xsd:schema>
