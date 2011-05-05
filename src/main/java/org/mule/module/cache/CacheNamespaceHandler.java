@@ -19,8 +19,8 @@ public class CacheNamespaceHandler extends NamespaceHandlerSupport
     {
         registerBeanDefinitionParser("cache-processor", new ChildDefinitionParser("messageProcessor",
             CachingMessageProcessor.class));
-        registerBeanDefinitionParser("http-cache-processor", new ChildDefinitionParser(
-            "cachingMessageProcessor", HttpCachingMessageProcessor.class));
+        registerBeanDefinitionParser("http-cache-processor", new ChildDefinitionParser("messageProcessor",
+            HttpCachingMessageProcessor.class));
     }
 
 }

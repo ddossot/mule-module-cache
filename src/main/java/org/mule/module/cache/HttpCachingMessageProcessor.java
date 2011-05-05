@@ -95,17 +95,17 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
     public static final String MULE_HTTPCACHE_RESOLVER_PROPERTY_KEY = "mule.httpcache.resolver";
 
     public static final String DEFAULT_REQUEST_URI_EXPRESSION = "#[header:INBOUND:http.request]";
-    public static final String DEFAULT_HTTP_METHOD_EXPRESSION = "#[header:INBOUND:http.method]";
-    public static final String DEFAULT_HTTP_RESPONSE_STATUS_CODE_EXPRESSION = "#[header:INBOUND:http.status]";
+    public static final String DEFAULT_REQUEST_HTTP_METHOD_EXPRESSION = "#[header:INBOUND:http.method]";
+    public static final String DEFAULT_RESPONSE_HTTP_STATUS_CODE_EXPRESSION = "#[header:INBOUND:http.status]";
 
     private HTTPCache httpCache;
     private String requestUriExpression = DEFAULT_REQUEST_URI_EXPRESSION;
-    private String httpMethodExpression = DEFAULT_HTTP_METHOD_EXPRESSION;
-    private String httpResponseStatusCodeExpression = DEFAULT_HTTP_RESPONSE_STATUS_CODE_EXPRESSION;
+    private String requestHttpMethodExpression = DEFAULT_REQUEST_HTTP_METHOD_EXPRESSION;
+    private String responseHttpStatusCodeExpression = DEFAULT_RESPONSE_HTTP_STATUS_CODE_EXPRESSION;
 
     public void initialise() throws InitialisationException
     {
-        httpCache.setResolver(new MuleResponseResolver(getHttpResponseStatusCodeExpression()));
+        httpCache.setResolver(new MuleResponseResolver(getResponseHttpStatusCodeExpression()));
     }
 
     public MuleEvent process(final MuleEvent event) throws MuleException
@@ -116,7 +116,7 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
         final String requestUri = (String) expressionManager.evaluate(getRequestUriExpression(), message);
 
         final HTTPMethod httpMethod = HTTPMethod.valueOf((String) expressionManager.evaluate(
-            getHttpMethodExpression(), message));
+            getRequestHttpMethodExpression(), message));
 
         HTTPRequest httpRequest = new HTTPRequest(requestUri, httpMethod);
         for (final String propertyName : message.getInboundPropertyNames())
@@ -167,23 +167,23 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
         this.requestUriExpression = requestUriExpression;
     }
 
-    public String getHttpMethodExpression()
+    public String getRequestHttpMethodExpression()
     {
-        return httpMethodExpression;
+        return requestHttpMethodExpression;
     }
 
-    public void setHttpMethodExpression(final String httpMethodExpression)
+    public void setRequestHttpMethodExpression(final String httpMethodExpression)
     {
-        this.httpMethodExpression = httpMethodExpression;
+        this.requestHttpMethodExpression = httpMethodExpression;
     }
 
-    public String getHttpResponseStatusCodeExpression()
+    public String getResponseHttpStatusCodeExpression()
     {
-        return httpResponseStatusCodeExpression;
+        return responseHttpStatusCodeExpression;
     }
 
-    public void setHttpResponseStatusCodeExpression(final String httpResponseStatusCodeExpression)
+    public void setResponseHttpStatusCodeExpression(final String httpResponseStatusCodeExpression)
     {
-        this.httpResponseStatusCodeExpression = httpResponseStatusCodeExpression;
+        this.responseHttpStatusCodeExpression = httpResponseStatusCodeExpression;
     }
 }

@@ -35,8 +35,8 @@
             <xsd:extension base="mule:abstractMessageProcessorType">
                 <xsd:attribute name="http-cache-ref" type="xsd:string" use="required"/>
                 <xsd:attribute name="requestUriExpression" type="xsd:string" use="optional"/>
-                <xsd:attribute name="httpMethodExpression" type="xsd:string" use="optional"/>
-                <xsd:attribute name="httpResponseStatusCodeExpression" type="xsd:string" use="optional"/>
+                <xsd:attribute name="requestHttpMethodExpression" type="xsd:string" use="optional"/>
+                <xsd:attribute name="responseHttpStatusCodeExpression" type="xsd:string" use="optional"/>
             </xsd:extension>
         </xsd:complexContent>
     </xsd:complexType>
