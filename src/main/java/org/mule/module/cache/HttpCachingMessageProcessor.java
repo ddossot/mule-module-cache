@@ -32,6 +32,7 @@ import org.mule.RequestContext;
 import org.mule.api.MuleEvent;
 import org.mule.api.MuleException;
 import org.mule.api.MuleMessage;
+import org.mule.api.expression.ExpressionManager;
 import org.mule.api.lifecycle.Initialisable;
 import org.mule.api.lifecycle.InitialisationException;
 import org.mule.processor.AbstractInterceptingMessageProcessor;
@@ -45,6 +46,13 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
 {
     private static final class MuleResponseResolver implements ResponseResolver
     {
+        private final String httpResponseStatusCodeExpression;
+
+        public MuleResponseResolver(final String httpResponseStatusCodeExpression)
+        {
+            this.httpResponseStatusCodeExpression = httpResponseStatusCodeExpression;
+        }
+
         public void shutdown()
         {
             // NOOP
@@ -66,7 +74,10 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
                     .getPayloadAsBytes()),
                     MIMEType.valueOf((String) message.getInboundProperty("Content-Type")));
 
-                final Status status = Status.valueOf(Integer.valueOf((String) message.getInboundProperty("http.status")));
+                final Status status = Status.valueOf(Integer.valueOf((String) response.getMuleContext()
+                    .getExpressionManager()
+                    .evaluate(httpResponseStatusCodeExpression, message)));
+
                 Headers headers = new Headers();
                 for (final String propertyName : message.getInboundPropertyNames())
                 {
@@ -81,20 +92,32 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
         }
     }
 
-    private static final String MULE_HTTPCACHE_RESOLVER_PROPERTY_KEY = "mule.httpcache.resolver";
+    public static final String MULE_HTTPCACHE_RESOLVER_PROPERTY_KEY = "mule.httpcache.resolver";
+
+    public static final String DEFAULT_REQUEST_URI_EXPRESSION = "#[header:INBOUND:http.request]";
+    public static final String DEFAULT_HTTP_METHOD_EXPRESSION = "#[header:INBOUND:http.method]";
+    public static final String DEFAULT_HTTP_RESPONSE_STATUS_CODE_EXPRESSION = "#[header:INBOUND:http.status]";
+
     private HTTPCache httpCache;
+    private String requestUriExpression = DEFAULT_REQUEST_URI_EXPRESSION;
+    private String httpMethodExpression = DEFAULT_HTTP_METHOD_EXPRESSION;
+    private String httpResponseStatusCodeExpression = DEFAULT_HTTP_RESPONSE_STATUS_CODE_EXPRESSION;
 
     public void initialise() throws InitialisationException
     {
-        httpCache.setResolver(new MuleResponseResolver());
+        httpCache.setResolver(new MuleResponseResolver(getHttpResponseStatusCodeExpression()));
     }
 
     public MuleEvent process(final MuleEvent event) throws MuleException
     {
         final MuleMessage message = event.getMessage();
+        final ExpressionManager expressionManager = muleContext.getExpressionManager();
 
-        final String requestUri = (String) message.getInboundProperty("http.request");
-        final HTTPMethod httpMethod = HTTPMethod.valueOf((String) message.getInboundProperty("http.method"));
+        final String requestUri = (String) expressionManager.evaluate(getRequestUriExpression(), message);
+
+        final HTTPMethod httpMethod = HTTPMethod.valueOf((String) expressionManager.evaluate(
+            getHttpMethodExpression(), message));
+
         HTTPRequest httpRequest = new HTTPRequest(requestUri, httpMethod);
         for (final String propertyName : message.getInboundPropertyNames())
         {
@@ -124,8 +147,43 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
         return new DefaultMuleEvent(resultMessage, event);
     }
 
+    public HTTPCache getHttpCache()
+    {
+        return httpCache;
+    }
+
     public void setHttpCache(final HTTPCache httpCache)
     {
         this.httpCache = httpCache;
+    }
+
+    public String getRequestUriExpression()
+    {
+        return requestUriExpression;
+    }
+
+    public void setRequestUriExpression(final String requestUriExpression)
+    {
+        this.requestUriExpression = requestUriExpression;
+    }
+
+    public String getHttpMethodExpression()
+    {
+        return httpMethodExpression;
+    }
+
+    public void setHttpMethodExpression(final String httpMethodExpression)
+    {
+        this.httpMethodExpression = httpMethodExpression;
+    }
+
+    public String getHttpResponseStatusCodeExpression()
+    {
+        return httpResponseStatusCodeExpression;
+    }
+
+    public void setHttpResponseStatusCodeExpression(final String httpResponseStatusCodeExpression)
+    {
+        this.httpResponseStatusCodeExpression = httpResponseStatusCodeExpression;
     }
 }
