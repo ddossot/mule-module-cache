@@ -10,6 +10,17 @@
 
 package org.mule.module.cache;
 
+import org.mule.DefaultMuleEvent;
+import org.mule.DefaultMuleMessage;
+import org.mule.RequestContext;
+import org.mule.api.MuleEvent;
+import org.mule.api.MuleException;
+import org.mule.api.MuleMessage;
+import org.mule.api.expression.ExpressionManager;
+import org.mule.api.lifecycle.Initialisable;
+import org.mule.api.lifecycle.InitialisationException;
+import org.mule.processor.AbstractInterceptingMessageProcessor;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.HashMap;
@@ -26,16 +37,6 @@ import org.codehaus.httpcache4j.cache.HTTPCache;
 import org.codehaus.httpcache4j.payload.ByteArrayPayload;
 import org.codehaus.httpcache4j.payload.Payload;
 import org.codehaus.httpcache4j.resolver.ResponseResolver;
-import org.mule.DefaultMuleEvent;
-import org.mule.DefaultMuleMessage;
-import org.mule.RequestContext;
-import org.mule.api.MuleEvent;
-import org.mule.api.MuleException;
-import org.mule.api.MuleMessage;
-import org.mule.api.expression.ExpressionManager;
-import org.mule.api.lifecycle.Initialisable;
-import org.mule.api.lifecycle.InitialisationException;
-import org.mule.processor.AbstractInterceptingMessageProcessor;
 
 /**
  * A wrapper around <a href="http://httpcache4j.codehaus.org/">Java HTTP Cache</a>.
@@ -87,7 +88,9 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
             }
             catch (final Exception e)
             {
-                throw new IOException("Can't process HTTP request with Mule", e);
+                IOException iox = new IOException("Can't process HTTP request with Mule");
+                iox.initCause(e);
+                throw iox;
             }
         }
     }
