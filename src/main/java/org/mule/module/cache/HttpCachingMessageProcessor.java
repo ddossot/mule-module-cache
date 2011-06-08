@@ -22,7 +22,9 @@ import org.codehaus.httpcache4j.HTTPResponse;
 import org.codehaus.httpcache4j.Headers;
 import org.codehaus.httpcache4j.MIMEType;
 import org.codehaus.httpcache4j.Status;
+import org.codehaus.httpcache4j.cache.CacheItem;
 import org.codehaus.httpcache4j.cache.HTTPCache;
+import org.codehaus.httpcache4j.cache.Key;
 import org.codehaus.httpcache4j.payload.ByteArrayPayload;
 import org.codehaus.httpcache4j.payload.Payload;
 import org.codehaus.httpcache4j.resolver.ResponseResolver;
@@ -99,7 +101,7 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
     public static final String DEFAULT_REQUEST_HTTP_METHOD_EXPRESSION = "#[header:INBOUND:http.method]";
     public static final String DEFAULT_RESPONSE_HTTP_STATUS_CODE_EXPRESSION = "#[header:INBOUND:http.status]";
 
-    private ObjectStore<HashMap<?, ?>> objectStore;
+    private ObjectStore<HashMap<Key, CacheItem>> objectStore;
     private HTTPCache httpCache;
     private String requestUriExpression = DEFAULT_REQUEST_URI_EXPRESSION;
     private String requestHttpMethodExpression = DEFAULT_REQUEST_HTTP_METHOD_EXPRESSION;
@@ -156,12 +158,12 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
         return httpCache;
     }
 
-    public ObjectStore<HashMap<?, ?>> getObjectStore()
+    public ObjectStore<HashMap<Key, CacheItem>> getObjectStore()
     {
         return objectStore;
     }
 
-    public void setObjectStore(final ObjectStore<HashMap<?, ?>> objectStore)
+    public void setObjectStore(final ObjectStore<HashMap<Key, CacheItem>> objectStore)
     {
         this.objectStore = objectStore;
     }

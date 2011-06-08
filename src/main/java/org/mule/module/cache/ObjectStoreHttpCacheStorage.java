@@ -36,33 +36,75 @@ import org.mule.api.store.ObjectStoreException;
  */
 public class ObjectStoreHttpCacheStorage extends AbstractMapBasedCacheStorage
 {
-    private static final String HTTP_CACHE_OBJECT_STORE_KEY = "HttpCache";
+    private interface ObjectStoreAction<V>
+    {
+        V run(ObjectStore<HashMap<Key, CacheItem>> objectStore) throws ObjectStoreException;
+    };
 
-    private final ObjectStore<HashMap<?, ?>> objectStore;
+    private interface CacheAction<V>
+    {
+        V run(HashMap<Key, CacheItem> cache) throws ObjectStoreException;
+    };
 
-    public ObjectStoreHttpCacheStorage(final ObjectStore<HashMap<?, ?>> objectStore)
+    private interface VoidCacheAction
+    {
+        void run(HashMap<Key, CacheItem> cache) throws ObjectStoreException;
+    };
+
+    private static class ObjectStoreCacheAction<V> implements ObjectStoreAction<V>
+    {
+        private final CacheAction<V> cacheAction;
+        private final V defaultResult;
+
+        private ObjectStoreCacheAction(final CacheAction<V> cacheAction, final V defaultResult)
+        {
+            this.cacheAction = cacheAction;
+            this.defaultResult = defaultResult;
+        }
+
+        public V run(final ObjectStore<HashMap<Key, CacheItem>> objectStore) throws ObjectStoreException
+        {
+            if (!objectStore.contains(HTTP_CACHE_OBJECT_STORE_KEY))
+            {
+                return defaultResult;
+            }
+
+            final HashMap<Key, CacheItem> cache = objectStore.remove(HTTP_CACHE_OBJECT_STORE_KEY);
+            final V result = cacheAction.run(cache);
+            objectStore.store(HTTP_CACHE_OBJECT_STORE_KEY, cache);
+            return result;
+        }
+    }
+
+    private static final String HTTP_CACHE_OBJECT_STORE_KEY = ObjectStoreHttpCacheStorage.class.getName();
+
+    private final ObjectStore<HashMap<Key, CacheItem>> objectStore;
+
+    public ObjectStoreHttpCacheStorage(final ObjectStore<HashMap<Key, CacheItem>> objectStore)
     {
         this.objectStore = objectStore;
     }
 
+    public int size()
+    {
+        return getCachedKeys().size();
+    }
+
+    public Iterator<Key> iterator()
+    {
+        return getCachedKeys().iterator();
+    }
+
     public CacheItem get(final HTTPRequest request)
     {
-        synchronized (objectStore)
+        return execute(new CacheAction<CacheItem>()
         {
-            try
+            public CacheItem run(final HashMap<Key, CacheItem> cache) throws ObjectStoreException
             {
-                if (!objectStore.contains(HTTP_CACHE_OBJECT_STORE_KEY))
-                {
-                    return null;
-                }
-
-                @SuppressWarnings("unchecked")
-                final HashMap<Key, CacheItem> cache = (HashMap<Key, CacheItem>) objectStore.retrieve(HTTP_CACHE_OBJECT_STORE_KEY);
-
                 for (final Entry<Key, CacheItem> entry : cache.entrySet())
                 {
                     final Key key = entry.getKey();
-                    if (request.getRequestURI().equals(key.getURI()) && key.getVary().matches(request))
+                    if ((request.getRequestURI().equals(key.getURI())) && (key.getVary().matches(request)))
                     {
                         return entry.getValue();
                     }
@@ -70,28 +112,16 @@ public class ObjectStoreHttpCacheStorage extends AbstractMapBasedCacheStorage
 
                 return null;
             }
-            catch (final ObjectStoreException ose)
-            {
-                throw new RuntimeException(ose);
-            }
-        }
+        });
     }
 
     @Override
     protected HTTPResponse get(final Key key)
     {
-        synchronized (objectStore)
+        return execute(new CacheAction<HTTPResponse>()
         {
-            try
+            public HTTPResponse run(final HashMap<Key, CacheItem> cache) throws ObjectStoreException
             {
-                if (!objectStore.contains(HTTP_CACHE_OBJECT_STORE_KEY))
-                {
-                    return null;
-                }
-
-                @SuppressWarnings("unchecked")
-                final HashMap<Key, CacheItem> cache = (HashMap<Key, CacheItem>) objectStore.retrieve(HTTP_CACHE_OBJECT_STORE_KEY);
-
                 final CacheItem cacheItem = cache.get(key);
 
                 if (cacheItem == null)
@@ -100,28 +130,17 @@ public class ObjectStoreHttpCacheStorage extends AbstractMapBasedCacheStorage
                 }
 
                 return cacheItem.getResponse();
+
             }
-            catch (final ObjectStoreException ose)
-            {
-                throw new RuntimeException(ose);
-            }
-        }
+        });
     }
 
     public void invalidate(final URI uri)
     {
-        synchronized (objectStore)
+        execute(new VoidCacheAction()
         {
-            try
+            public void run(final HashMap<Key, CacheItem> cache) throws ObjectStoreException
             {
-                if (!objectStore.contains(HTTP_CACHE_OBJECT_STORE_KEY))
-                {
-                    return;
-                }
-
-                @SuppressWarnings("unchecked")
-                final HashMap<Key, CacheItem> cache = (HashMap<Key, CacheItem>) objectStore.retrieve(HTTP_CACHE_OBJECT_STORE_KEY);
-
                 final Set<Key> keysToRemove = new HashSet<Key>();
                 for (final Key key : cache.keySet())
                 {
@@ -134,73 +153,31 @@ public class ObjectStoreHttpCacheStorage extends AbstractMapBasedCacheStorage
                 {
                     cache.remove(keyToRemove);
                 }
-
-                if (!keysToRemove.isEmpty())
-                {
-                    objectStore.remove(HTTP_CACHE_OBJECT_STORE_KEY);
-                    objectStore.store(HTTP_CACHE_OBJECT_STORE_KEY, cache);
-                }
             }
-            catch (final ObjectStoreException ose)
-            {
-                throw new RuntimeException(ose);
-            }
-        }
+        });
     }
 
     @Override
     protected void invalidate(final Key key)
     {
-        synchronized (objectStore)
+        execute(new VoidCacheAction()
         {
-            try
+            public void run(final HashMap<Key, CacheItem> cache) throws ObjectStoreException
             {
-                if (!objectStore.contains(HTTP_CACHE_OBJECT_STORE_KEY))
-                {
-                    return;
-                }
-
-                @SuppressWarnings("unchecked")
-                final HashMap<Key, CacheItem> cache = (HashMap<Key, CacheItem>) objectStore.retrieve(HTTP_CACHE_OBJECT_STORE_KEY);
-                if (cache.remove(key) != null)
-                {
-                    objectStore.remove(HTTP_CACHE_OBJECT_STORE_KEY);
-                    objectStore.store(HTTP_CACHE_OBJECT_STORE_KEY, cache);
-                }
+                cache.remove(key);
             }
-            catch (final ObjectStoreException ose)
-            {
-                throw new RuntimeException(ose);
-            }
-        }
+        });
     }
 
     public void clear()
     {
-        synchronized (objectStore)
+        execute(new VoidCacheAction()
         {
-            try
+            public void run(final HashMap<Key, CacheItem> cache) throws ObjectStoreException
             {
-                if (objectStore.contains(HTTP_CACHE_OBJECT_STORE_KEY))
-                {
-                    objectStore.remove(HTTP_CACHE_OBJECT_STORE_KEY);
-                }
+                cache.clear();
             }
-            catch (final ObjectStoreException ose)
-            {
-                throw new RuntimeException(ose);
-            }
-        }
-    }
-
-    public int size()
-    {
-        return getCachedKeys().size();
-    }
-
-    public Iterator<Key> iterator()
-    {
-        return getCachedKeys().iterator();
+        });
     }
 
     @Override
@@ -218,23 +195,31 @@ public class ObjectStoreHttpCacheStorage extends AbstractMapBasedCacheStorage
     @Override
     protected HTTPResponse putImpl(final Key key, final HTTPResponse response)
     {
-        synchronized (objectStore)
+        return execute(new ObjectStoreAction<HTTPResponse>()
         {
-            try
+            public HTTPResponse run(final ObjectStore<HashMap<Key, CacheItem>> objectStore)
+                throws ObjectStoreException
             {
-                @SuppressWarnings("unchecked")
-                final HashMap<Key, CacheItem> cache = (HashMap<Key, CacheItem>) (objectStore.contains(HTTP_CACHE_OBJECT_STORE_KEY)
-                                                                                                                                  ? objectStore.remove(HTTP_CACHE_OBJECT_STORE_KEY)
-                                                                                                                                  : new HashMap<Key, CacheItem>());
+                final HashMap<Key, CacheItem> cache = objectStore.contains(HTTP_CACHE_OBJECT_STORE_KEY)
+                                                                                                       ? objectStore.remove(HTTP_CACHE_OBJECT_STORE_KEY)
+                                                                                                       : new HashMap<Key, CacheItem>();
                 cache.put(key, createCacheItem(response));
                 objectStore.store(HTTP_CACHE_OBJECT_STORE_KEY, cache);
+                return response;
             }
-            catch (final ObjectStoreException ose)
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private Set<Key> getCachedKeys()
+    {
+        return execute(new CacheAction<Set<Key>>()
+        {
+            public Set<Key> run(final HashMap<Key, CacheItem> cache) throws ObjectStoreException
             {
-                throw new RuntimeException(ose);
+                return cache.keySet();
             }
-        }
-        return response;
+        }, Collections.EMPTY_SET);
     }
 
     private CacheItem createCacheItem(final HTTPResponse pCacheableResponse)
@@ -242,25 +227,41 @@ public class ObjectStoreHttpCacheStorage extends AbstractMapBasedCacheStorage
         return new CacheItem(pCacheableResponse);
     }
 
-    @SuppressWarnings("unchecked")
-    private Set<Key> getCachedKeys()
+    private void execute(final VoidCacheAction action)
+    {
+        execute(new CacheAction<Void>()
+        {
+            public Void run(final HashMap<Key, CacheItem> cache) throws ObjectStoreException
+            {
+                action.run(cache);
+                return null;
+            }
+        });
+    }
+
+    private <T> T execute(final CacheAction<T> action)
+    {
+        return execute(action, null);
+    }
+
+    private <T> T execute(final CacheAction<T> action, final T defaultResult)
+    {
+        return execute(new ObjectStoreCacheAction<T>(action, defaultResult));
+    }
+
+    private <T> T execute(final ObjectStoreAction<T> action)
     {
         synchronized (objectStore)
         {
             try
             {
-                if (!objectStore.contains(HTTP_CACHE_OBJECT_STORE_KEY))
-                {
-                    return Collections.emptySet();
-                }
-
-                final HashMap<Key, CacheItem> cache = (HashMap<Key, CacheItem>) objectStore.retrieve(HTTP_CACHE_OBJECT_STORE_KEY);
-                return cache.keySet();
+                return action.run(objectStore);
             }
             catch (final ObjectStoreException ose)
             {
                 throw new RuntimeException(ose);
             }
         }
+
     }
 }
