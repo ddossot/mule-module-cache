@@ -13,6 +13,7 @@ package org.mule.module.cache;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -28,9 +29,6 @@ import org.codehaus.httpcache4j.payload.ByteArrayPayload;
 import org.codehaus.httpcache4j.payload.Payload;
 import org.mule.api.store.ObjectStore;
 import org.mule.api.store.ObjectStoreException;
-import org.mule.util.store.InMemoryObjectStore;
-
-import edu.emory.mathcs.backport.java.util.Collections;
 
 /**
  * Allows HttpCache4J to use {@link ObjectStore} for persistence. Code has been partially lifted from
@@ -40,8 +38,12 @@ public class ObjectStoreHttpCacheStorage extends AbstractMapBasedCacheStorage
 {
     private static final String HTTP_CACHE_OBJECT_STORE_KEY = "HttpCache";
 
-    // FIXME (DDO) constructor injection
-    private final ObjectStore<HashMap<?, ?>> objectStore = new InMemoryObjectStore<HashMap<?, ?>>();
+    private final ObjectStore<HashMap<?, ?>> objectStore;
+
+    public ObjectStoreHttpCacheStorage(final ObjectStore<HashMap<?, ?>> objectStore)
+    {
+        this.objectStore = objectStore;
+    }
 
     public CacheItem get(final HTTPRequest request)
     {

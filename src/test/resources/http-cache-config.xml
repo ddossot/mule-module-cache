@@ -15,27 +15,18 @@
        http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/3.1/mule-vm.xsd">
 
     <spring:beans>
-        <spring:bean id="http-cache1" class="org.codehaus.httpcache4j.cache.HTTPCache">
-            <spring:constructor-arg>
-                <spring:bean class="org.mule.module.cache.ObjectStoreHttpCacheStorage" />
-            </spring:constructor-arg>
-        </spring:bean>
-        <spring:bean id="http-cache2" class="org.codehaus.httpcache4j.cache.HTTPCache">
-            <spring:constructor-arg>
-                <spring:bean class="org.mule.module.cache.ObjectStoreHttpCacheStorage" />
-            </spring:constructor-arg>
-        </spring:bean>
+        <spring:bean id="httpCacheStore" class="org.mule.util.store.InMemoryObjectStore" />
     </spring:beans>
     
     <flow name="DefaultExpressions">
         <vm:inbound-endpoint path="default-expressions" exchange-pattern="request-response"/>
-        <cache:http-cache-processor http-cache-ref="http-cache1" /> 
+        <cache:http-cache-processor objectStore-ref="httpCacheStore" /> 
         <vm:outbound-endpoint path="#[header:INBOUND:target.service]" exchange-pattern="request-response"/>
     </flow>
     
     <flow name="CustomExpressions">
         <vm:inbound-endpoint path="custom-expressions" exchange-pattern="request-response"/>
-        <cache:http-cache-processor http-cache-ref="http-cache2"
+        <cache:http-cache-processor objectStore-ref="httpCacheStore"
                                     requestHttpMethodExpression="#[header:INBOUND:customHttpMethod]"
                                     requestUriExpression="#[header:INBOUND:customUri]"
                                     responseHttpStatusCodeExpression="#[header:INBOUND:customStatus]" /> 

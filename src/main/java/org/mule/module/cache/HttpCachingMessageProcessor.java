@@ -10,17 +10,6 @@
 
 package org.mule.module.cache;
 
-import org.mule.DefaultMuleEvent;
-import org.mule.DefaultMuleMessage;
-import org.mule.RequestContext;
-import org.mule.api.MuleEvent;
-import org.mule.api.MuleException;
-import org.mule.api.MuleMessage;
-import org.mule.api.expression.ExpressionManager;
-import org.mule.api.lifecycle.Initialisable;
-import org.mule.api.lifecycle.InitialisationException;
-import org.mule.processor.AbstractInterceptingMessageProcessor;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.HashMap;
@@ -37,6 +26,17 @@ import org.codehaus.httpcache4j.cache.HTTPCache;
 import org.codehaus.httpcache4j.payload.ByteArrayPayload;
 import org.codehaus.httpcache4j.payload.Payload;
 import org.codehaus.httpcache4j.resolver.ResponseResolver;
+import org.mule.DefaultMuleEvent;
+import org.mule.DefaultMuleMessage;
+import org.mule.RequestContext;
+import org.mule.api.MuleEvent;
+import org.mule.api.MuleException;
+import org.mule.api.MuleMessage;
+import org.mule.api.expression.ExpressionManager;
+import org.mule.api.lifecycle.Initialisable;
+import org.mule.api.lifecycle.InitialisationException;
+import org.mule.api.store.ObjectStore;
+import org.mule.processor.AbstractInterceptingMessageProcessor;
 
 /**
  * A wrapper around <a href="http://httpcache4j.codehaus.org/">Java HTTP Cache</a>.
@@ -47,13 +47,6 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
 {
     private static final class MuleResponseResolver implements ResponseResolver
     {
-        private final String httpResponseStatusCodeExpression;
-
-        public MuleResponseResolver(final String httpResponseStatusCodeExpression)
-        {
-            this.httpResponseStatusCodeExpression = httpResponseStatusCodeExpression;
-        }
-
         public void shutdown()
         {
             // NOOP
@@ -63,44 +56,50 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
         {
             try
             {
+                final MuleMessage message = RequestContext.getEvent().getMessage();
+
                 @SuppressWarnings("unchecked")
-                final Callable<MuleEvent> muleInvoker = (Callable<MuleEvent>) RequestContext.getEvent()
-                    .getMessage()
-                    .getInvocationProperty(MULE_HTTPCACHE_RESOLVER_PROPERTY_KEY);
+                final Callable<MuleEvent> muleInvoker = (Callable<MuleEvent>) message.getInvocationProperty(MULE_HTTPCACHE_INVOKER_PROPERTY_KEY);
+                final String httpResponseStatusCodeExpression = message.getInvocationProperty(MULE_HTTPCACHE_RESPONSE_STATUS_CODE_EXPRESSION_PROPERTY_KEY);
 
                 final MuleEvent response = muleInvoker.call();
-                final MuleMessage message = response.getMessage();
+                final MuleMessage responseMessage = response.getMessage();
 
                 final Payload payload = new ByteArrayPayload(new ByteArrayInputStream(response.getMessage()
                     .getPayloadAsBytes()),
-                    MIMEType.valueOf((String) message.getInboundProperty("Content-Type")));
+                    MIMEType.valueOf((String) responseMessage.getInboundProperty("Content-Type")));
 
                 final Status status = Status.valueOf(Integer.valueOf((String) response.getMuleContext()
                     .getExpressionManager()
-                    .evaluate(httpResponseStatusCodeExpression, message)));
+                    .evaluate(httpResponseStatusCodeExpression, responseMessage)));
 
                 Headers headers = new Headers();
-                for (final String propertyName : message.getInboundPropertyNames())
+                for (final String propertyName : responseMessage.getInboundPropertyNames())
                 {
-                    headers = headers.set(propertyName, message.getInboundProperty(propertyName).toString());
+                    headers = headers.set(propertyName, responseMessage.getInboundProperty(propertyName)
+                        .toString());
                 }
                 return new HTTPResponse(payload, status, headers);
             }
             catch (final Exception e)
             {
-                IOException iox = new IOException("Can't process HTTP request with Mule");
+                final IOException iox = new IOException("Can't process HTTP request with Mule");
                 iox.initCause(e);
                 throw iox;
             }
         }
     }
 
-    public static final String MULE_HTTPCACHE_RESOLVER_PROPERTY_KEY = "mule.httpcache.resolver";
+    public static final ResponseResolver MULE_RESPONSE_RESOLVER = new MuleResponseResolver();
+
+    public static final String MULE_HTTPCACHE_INVOKER_PROPERTY_KEY = "mule.httpcache.invoker";
+    public static final String MULE_HTTPCACHE_RESPONSE_STATUS_CODE_EXPRESSION_PROPERTY_KEY = "mule.httpcache.response.sc.expression";
 
     public static final String DEFAULT_REQUEST_URI_EXPRESSION = "#[header:INBOUND:http.request]";
     public static final String DEFAULT_REQUEST_HTTP_METHOD_EXPRESSION = "#[header:INBOUND:http.method]";
     public static final String DEFAULT_RESPONSE_HTTP_STATUS_CODE_EXPRESSION = "#[header:INBOUND:http.status]";
 
+    private ObjectStore<HashMap<?, ?>> objectStore;
     private HTTPCache httpCache;
     private String requestUriExpression = DEFAULT_REQUEST_URI_EXPRESSION;
     private String requestHttpMethodExpression = DEFAULT_REQUEST_HTTP_METHOD_EXPRESSION;
@@ -108,7 +107,7 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
 
     public void initialise() throws InitialisationException
     {
-        httpCache.setResolver(new MuleResponseResolver(getResponseHttpStatusCodeExpression()));
+        httpCache = new HTTPCache(new ObjectStoreHttpCacheStorage(objectStore), MULE_RESPONSE_RESOLVER);
     }
 
     public MuleEvent process(final MuleEvent event) throws MuleException
@@ -128,14 +127,16 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
                 .toString());
         }
 
-        event.getMessage().setInvocationProperty(MULE_HTTPCACHE_RESOLVER_PROPERTY_KEY,
-            new Callable<MuleEvent>()
+        message.setInvocationProperty(MULE_HTTPCACHE_INVOKER_PROPERTY_KEY, new Callable<MuleEvent>()
+        {
+            public MuleEvent call() throws Exception
             {
-                public MuleEvent call() throws Exception
-                {
-                    return processNext(event);
-                }
-            });
+                return processNext(event);
+            }
+        });
+
+        message.setInvocationProperty(MULE_HTTPCACHE_RESPONSE_STATUS_CODE_EXPRESSION_PROPERTY_KEY,
+            getResponseHttpStatusCodeExpression());
 
         final HTTPResponse httpResponse = httpCache.doCachedRequest(httpRequest);
 
@@ -155,9 +156,14 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
         return httpCache;
     }
 
-    public void setHttpCache(final HTTPCache httpCache)
+    public ObjectStore<HashMap<?, ?>> getObjectStore()
     {
-        this.httpCache = httpCache;
+        return objectStore;
+    }
+
+    public void setObjectStore(final ObjectStore<HashMap<?, ?>> objectStore)
+    {
+        this.objectStore = objectStore;
     }
 
     public String getRequestUriExpression()
