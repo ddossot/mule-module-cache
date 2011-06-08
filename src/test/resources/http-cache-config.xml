@@ -17,12 +17,12 @@
     <spring:beans>
         <spring:bean id="http-cache1" class="org.codehaus.httpcache4j.cache.HTTPCache">
             <spring:constructor-arg>
-                <spring:bean class="org.codehaus.httpcache4j.cache.MemoryCacheStorage" />
+                <spring:bean class="org.mule.module.cache.ObjectStoreHttpCacheStorage" />
             </spring:constructor-arg>
         </spring:bean>
         <spring:bean id="http-cache2" class="org.codehaus.httpcache4j.cache.HTTPCache">
             <spring:constructor-arg>
-                <spring:bean class="org.codehaus.httpcache4j.cache.MemoryCacheStorage" />
+                <spring:bean class="org.mule.module.cache.ObjectStoreHttpCacheStorage" />
             </spring:constructor-arg>
         </spring:bean>
     </spring:beans>
