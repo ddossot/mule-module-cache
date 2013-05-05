@@ -64,16 +64,16 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
                 final Callable<MuleEvent> muleInvoker = (Callable<MuleEvent>) message.getInvocationProperty(MULE_HTTPCACHE_INVOKER_PROPERTY_KEY);
                 final String httpResponseStatusCodeExpression = message.getInvocationProperty(MULE_HTTPCACHE_RESPONSE_STATUS_CODE_EXPRESSION_PROPERTY_KEY);
 
-                final MuleEvent response = muleInvoker.call();
-                final MuleMessage responseMessage = response.getMessage();
+                final MuleEvent responseEvent = muleInvoker.call();
+                final MuleMessage responseMessage = responseEvent.getMessage();
 
-                final Payload payload = new ByteArrayPayload(new ByteArrayInputStream(response.getMessage()
-                    .getPayloadAsBytes()),
+                final Payload payload = new ByteArrayPayload(new ByteArrayInputStream(
+                    responseMessage.getPayloadAsBytes()),
                     MIMEType.valueOf((String) responseMessage.getInboundProperty("Content-Type")));
 
-                final Status status = Status.valueOf(Integer.valueOf((String) response.getMuleContext()
+                final Status status = Status.valueOf(Integer.valueOf((String) responseEvent.getMuleContext()
                     .getExpressionManager()
-                    .evaluate(httpResponseStatusCodeExpression, responseMessage)));
+                    .evaluate(httpResponseStatusCodeExpression, responseEvent)));
 
                 Headers headers = new Headers();
                 for (final String propertyName : responseMessage.getInboundPropertyNames())
@@ -117,10 +117,10 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
         final MuleMessage message = event.getMessage();
         final ExpressionManager expressionManager = muleContext.getExpressionManager();
 
-        final String requestUri = (String) expressionManager.evaluate(getRequestUriExpression(), message);
+        final String requestUri = (String) expressionManager.evaluate(getRequestUriExpression(), event);
 
         final HTTPMethod httpMethod = HTTPMethod.valueOf((String) expressionManager.evaluate(
-            getRequestHttpMethodExpression(), message));
+            getRequestHttpMethodExpression(), event));
 
         HTTPRequest httpRequest = new HTTPRequest(requestUri, httpMethod);
         for (final String propertyName : message.getInboundPropertyNames())
@@ -140,7 +140,7 @@ public class HttpCachingMessageProcessor extends AbstractInterceptingMessageProc
         message.setInvocationProperty(MULE_HTTPCACHE_RESPONSE_STATUS_CODE_EXPRESSION_PROPERTY_KEY,
             getResponseHttpStatusCodeExpression());
 
-        final HTTPResponse httpResponse = httpCache.doCachedRequest(httpRequest);
+        final HTTPResponse httpResponse = httpCache.execute(httpRequest);
 
         final Map<String, Object> properties = new HashMap<String, Object>();
         final Headers headers = httpResponse.getHeaders();

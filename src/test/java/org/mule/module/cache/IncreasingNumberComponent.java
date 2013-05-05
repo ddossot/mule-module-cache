@@ -7,13 +7,15 @@
  * license, a copy of which has been included with this distribution in the
  * LICENSE.txt file.
  */
+
 package org.mule.module.cache;
 
 public class IncreasingNumberComponent
 {
     public int number = 0;
-    
-    public int increase(String payload) {
+
+    public int increase(String payload)
+    {
         return number++;
     }
 }

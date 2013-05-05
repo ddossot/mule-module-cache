@@ -1,2 +1,5 @@
+http\://www.mulesoft.org/schema/mule/cache/current/mule-cache.xsd=META-INF/mule-cache-34.xsd
+http\://www.mulesoft.org/schema/mule/cache/3.4/mule-cache.xsd=META-INF/mule-cache-34.xsd
+http\://www.mulesoft.org/schema/mule/cache/3.3/mule-cache.xsd=META-INF/mule-cache-33.xsd
 http\://www.mulesoft.org/schema/mule/cache/3.2/mule-cache.xsd=META-INF/mule-cache-32.xsd
 http\://www.mulesoft.org/schema/mule/cache/3.1/mule-cache.xsd=META-INF/mule-cache-31.xsd

@@ -10,6 +10,14 @@
 
 package org.mule.module.cache;
 
+import java.io.InputStream;
+import java.io.Serializable;
+import java.util.List;
+
+import javax.xml.transform.stream.StreamSource;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.mule.api.DefaultMuleException;
 import org.mule.api.MuleEvent;
 import org.mule.api.MuleException;
@@ -25,15 +33,6 @@ import org.mule.config.i18n.MessageFactory;
 import org.mule.context.notification.MessageProcessorNotification;
 import org.mule.processor.AbstractMessageProcessorOwner;
 import org.mule.processor.chain.DefaultMessageProcessorChainBuilder;
-
-import java.io.InputStream;
-import java.io.Serializable;
-import java.util.List;
-
-import javax.xml.transform.stream.StreamSource;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springmodules.cache.CachingModel;
 import org.springmodules.cache.provider.CacheProviderFacade;
 
@@ -53,7 +52,7 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
 
     protected ServerNotificationHandler notificationHandler;
 
-    protected MuleEvent processNext(MuleEvent event) throws MuleException
+    protected MuleEvent processNext(final MuleEvent event) throws MuleException
     {
         if (next == null)
         {
@@ -77,19 +76,31 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
         }
     }
 
-    protected void fireNotification(MuleEvent event, MessageProcessor processor, int action)
+    protected void fireNotification(final MuleEvent event, final MessageProcessor processor, final int action)
     {
         if (notificationHandler != null
             && notificationHandler.isNotificationEnabled(MessageProcessorNotification.class))
         {
-            notificationHandler.fireNotification(new MessageProcessorNotification(event, processor, action));
+            notificationHandler.fireNotification(new MessageProcessorNotification(getFlowConstruct(), event,
+                processor, null, action));
         }
     }
 
+    @Override
     public void initialise() throws InitialisationException
     {
         super.initialise();
-        
+
+        try
+        {
+            next = new DefaultMessageProcessorChainBuilder(getFlowConstruct()).chain(messageProcessors)
+                .build();
+        }
+        catch (final MuleException me)
+        {
+            throw new InitialisationException(me, this);
+        }
+
         if (keyGeneratorExpression != null && keyGenerator != null)
         {
             throw new InitialisationException(
@@ -108,7 +119,7 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
         }
     }
 
-    public MuleEvent process(MuleEvent event) throws MuleException
+    public MuleEvent process(final MuleEvent event) throws MuleException
     {
         if (!isCacheable(event))
         {
@@ -116,7 +127,7 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
         }
 
         // Generate the key
-        Serializable key = keyGenerator.generateKey(event);
+        final Serializable key = keyGenerator.generateKey(event);
 
         if (logger.isDebugEnabled())
         {
@@ -124,7 +135,7 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
         }
 
         // see if we have a cached response
-        MuleEvent cachedResponse = (MuleEvent) cacheProvider.getFromCache(key, cacheModel);
+        final MuleEvent cachedResponse = (MuleEvent) cacheProvider.getFromCache(key, cacheModel);
 
         MuleEvent response;
         // nothing in the cache, invoke the MPs
@@ -145,31 +156,29 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
         return response;
     }
 
-    protected boolean isCacheable(MuleEvent event)
+    protected boolean isCacheable(final MuleEvent event)
     {
         if (cacheableExpression != null)
         {
-            return event.getMuleContext()
-                .getExpressionManager()
-                .evaluateBoolean(cacheableExpression, event.getMessage());
+            return event.getMuleContext().getExpressionManager().evaluateBoolean(cacheableExpression, event);
         }
 
         // if the user doesn't specify an expression, assume the message is cacheable
         return true;
     }
 
-    protected void ensurePayloadIsNotConsumable(MuleEvent response)
+    protected void ensurePayloadIsNotConsumable(final MuleEvent response)
         throws MuleException, DefaultMuleException
     {
-        Object payload = response.getMessage().getPayload();
-        boolean isStream = isStream(payload);
+        final Object payload = response.getMessage().getPayload();
+        final boolean isStream = isStream(payload);
         if (isStream)
         {
             try
             {
                 response.getMessage().getPayloadAsBytes();
             }
-            catch (Exception e)
+            catch (final Exception e)
             {
                 if (e instanceof MuleException)
                 {
@@ -181,34 +190,33 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
         }
     }
 
-    protected boolean isStream(Object payload)
+    protected boolean isStream(final Object payload)
     {
         return payload instanceof OutputHandler || payload instanceof InputStream
                || payload instanceof StreamSource;
-        // || payload.getClass().isAssignableFrom("javax.xml.stream.XMLStreamReader")
     }
 
-    private Object clone(MuleEvent cached, MuleEvent event)
+    private Object clone(final MuleEvent cached, final MuleEvent event)
     {
-        MuleMessage message = event.getMessage();
-        MuleMessage cachedResponse = cached.getMessage();
+        final MuleMessage message = event.getMessage();
+        final MuleMessage cachedResponse = cached.getMessage();
 
         message.clearProperties(PropertyScope.INBOUND);
         message.clearProperties(PropertyScope.INVOCATION);
         message.clearProperties(PropertyScope.OUTBOUND);
 
         // copy properties
-        for (String s : cachedResponse.getInboundPropertyNames())
+        for (final String s : cachedResponse.getInboundPropertyNames())
         {
             message.setProperty(s, cachedResponse.getInboundProperty(s), PropertyScope.INBOUND);
         }
 
-        for (String s : cachedResponse.getInvocationPropertyNames())
+        for (final String s : cachedResponse.getInvocationPropertyNames())
         {
             message.setProperty(s, cachedResponse.getInvocationProperty(s), PropertyScope.INVOCATION);
         }
 
-        for (String s : cachedResponse.getOutboundPropertyNames())
+        for (final String s : cachedResponse.getOutboundPropertyNames())
         {
             message.setProperty(s, cachedResponse.getOutboundProperty(s), PropertyScope.OUTBOUND);
         }
@@ -219,12 +227,12 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
         return message;
     }
 
-    public void setCache(CacheProviderFacade cacheProvider)
+    public void setCache(final CacheProviderFacade cacheProvider)
     {
         this.cacheProvider = cacheProvider;
     }
 
-    public void setCachingModel(CachingModel cacheModel)
+    public void setCachingModel(final CachingModel cacheModel)
     {
         this.cacheModel = cacheModel;
     }
@@ -234,25 +242,24 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
         return cacheableExpression;
     }
 
-    public void setCacheableExpression(String cacheableExpression)
+    public void setCacheableExpression(final String cacheableExpression)
     {
         this.cacheableExpression = cacheableExpression;
     }
 
-    public void setKeyGenerator(CacheKeyGenerator keyGenerator)
+    public void setKeyGenerator(final CacheKeyGenerator keyGenerator)
     {
         this.keyGenerator = keyGenerator;
     }
 
-    public void setKeyGeneratorExpression(String keyGeneratorExpression)
+    public void setKeyGeneratorExpression(final String keyGeneratorExpression)
     {
         this.keyGeneratorExpression = keyGeneratorExpression;
     }
 
-    public void setMessageProcessors(List<MessageProcessor> messageProcessors) throws MuleException
+    public void setMessageProcessors(final List<MessageProcessor> messageProcessors)
     {
         this.messageProcessors = messageProcessors;
-        this.next = new DefaultMessageProcessorChainBuilder().chain(messageProcessors).build();
     }
 
     @Override
@@ -261,7 +268,7 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
         return messageProcessors;
     }
 
-    public void setListener(MessageProcessor listener)
+    public void setListener(final MessageProcessor listener)
     {
         next = listener;
     }

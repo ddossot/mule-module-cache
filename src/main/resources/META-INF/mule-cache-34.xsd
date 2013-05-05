@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<xsd:schema xmlns="http://www.mulesoft.org/schema/mule/cache"
+            xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            xmlns:mule="http://www.mulesoft.org/schema/mule/core"
+            xmlns:spring="http://www.springframework.org/schema/beans"
+            targetNamespace="http://www.mulesoft.org/schema/mule/cache"
+            elementFormDefault="qualified"
+            attributeFormDefault="unqualified">
+
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace"/>
+    <xsd:import namespace="http://www.mulesoft.org/schema/mule/core"
+                schemaLocation="http://www.mulesoft.org/schema/mule/core/3.4/mule.xsd" />
+    <xsd:import namespace="http://www.springframework.org/schema/beans"
+                schemaLocation="http://www.springframework.org/schema/beans/spring-beans-3.2.xsd"/>
+
+    <xsd:element name="cache-processor" type="cacheProcessorType" substitutionGroup="mule:abstract-intercepting-message-processor"/>
+    <xsd:complexType name="cacheProcessorType">
+        <xsd:complexContent>
+            <xsd:extension base="mule:abstractInterceptingMessageProcessorType">
+                <xsd:sequence>
+                    <xsd:group ref="mule:messageProcessorOrOutboundEndpoint" maxOccurs="unbounded"/>
+                </xsd:sequence>
+                <xsd:attribute name="cache-ref" type="xsd:string" use="required"/>
+                <xsd:attribute name="cachingModel-ref" type="xsd:string" use="required"/>
+                <xsd:attribute name="cacheableExpression" type="xsd:string" use="optional"/>
+                <xsd:attribute name="keyGenerator-ref" type="xsd:string" use="optional"/>
+                <xsd:attribute name="keyGeneratorExpression" type="xsd:string" use="optional"/>
+            </xsd:extension>
+        </xsd:complexContent>
+    </xsd:complexType>
+
+    <xsd:element name="http-cache-processor" type="httpCacheProcessorType" substitutionGroup="mule:abstract-message-processor"/>
+    <xsd:complexType name="httpCacheProcessorType">
+        <xsd:complexContent>
+            <xsd:extension base="mule:abstractMessageProcessorType">
+                <xsd:attribute name="objectStore-ref" type="xsd:string" use="required"/>
+                <xsd:attribute name="requestUriExpression" type="xsd:string" use="optional"/>
+                <xsd:attribute name="requestHttpMethodExpression" type="xsd:string" use="optional"/>
+                <xsd:attribute name="responseHttpStatusCodeExpression" type="xsd:string" use="optional"/>
+            </xsd:extension>
+        </xsd:complexContent>
+    </xsd:complexType>
+</xsd:schema>

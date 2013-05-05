@@ -1,38 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns="http://www.mulesoft.org/schema/mule/core"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:spring="http://www.springframework.org/schema/beans"
-       xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
-       xmlns:test="http://www.mulesoft.org/schema/mule/test"
-       xmlns:cache="http://www.mulesoft.org/schema/mule/cache"
-       xmlns:ehcache="http://www.springmodules.org/schema/ehcache"
-       xsi:schemaLocation="
-       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
-       http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.1/mule.xsd
-       http://www.mulesoft.org/schema/mule/test http://www.mulesoft.org/schema/mule/test/3.1/mule-test.xsd
-       http://www.mulesoft.org/schema/mule/cache http://www.mulesoft.org/schema/mule/cache/3.1/mule-cache.xsd
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:spring="http://www.springframework.org/schema/beans" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+    xmlns:test="http://www.mulesoft.org/schema/mule/test" xmlns:cache="http://www.mulesoft.org/schema/mule/cache"
+    xmlns:ehcache="http://www.springmodules.org/schema/ehcache"
+    xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+       http://www.mulesoft.org/schema/mule/test http://www.mulesoft.org/schema/mule/test/current/mule-test.xsd
+       http://www.mulesoft.org/schema/mule/cache http://www.mulesoft.org/schema/mule/cache/current/mule-cache.xsd
        http://www.springmodules.org/schema/ehcache http://www.springmodules.org/schema/cache/springmodules-ehcache.xsd
-       http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/3.1/mule-s.xsd">
+       http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-s.xsd">
 
     <spring:beans>
-        <ehcache:config id="ehcache" 
-                        failQuietly="true"
-                        configLocation="classpath:ehcache.xml" />
-        
-        <spring:bean id="cachingModel" class="org.springmodules.cache.provider.ehcache.EhCacheCachingModel">
-            <spring:property name="cacheName" value="messages"/>
+        <ehcache:config id="ehcache" failQuietly="true"
+            configLocation="classpath:ehcache.xml" />
+
+        <spring:bean id="cachingModel"
+            class="org.springmodules.cache.provider.ehcache.EhCacheCachingModel">
+            <spring:property name="cacheName" value="messages" />
         </spring:bean>
     </spring:beans>
-    
+
     <flow name="CacheRouter">
-        <inbound-endpoint address="vm://test" exchange-pattern="request-response"/>
-        <cache:cache-processor cache-ref="ehcache" 
-                               cachingModel-ref="cachingModel">        
+        <inbound-endpoint address="vm://test" exchange-pattern="request-response" />
+        <cache:cache-processor cache-ref="ehcache"
+            cachingModel-ref="cachingModel">
             <component>
-                <singleton-object class="org.mule.module.cache.IncreasingNumberComponent"/>
+                <singleton-object
+                    class="org.mule.module.cache.IncreasingNumberComponent" />
             </component>
         </cache:cache-processor>
-        
     </flow>
-    
 </mule>

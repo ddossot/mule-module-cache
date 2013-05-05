@@ -10,12 +10,15 @@
 
 package org.mule.module.cache;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.Test;
 import org.mule.api.client.MuleClient;
 import org.mule.client.DefaultLocalMuleClient;
-import org.mule.tck.FunctionalTestCase;
+import org.mule.tck.junit4.FunctionalTestCase;
 
 public class HttpCachingMessageProcessorTest extends FunctionalTestCase
 {
@@ -25,21 +28,25 @@ public class HttpCachingMessageProcessorTest extends FunctionalTestCase
         return "http-cache-config.xml";
     }
 
+    @Test
     public void testDefaultExpressionsCacheableRequest() throws Exception
     {
         testHttpCachingMessageProcessorWithDefaultExpressions("cacheable-response-service", true);
     }
 
+    @Test
     public void testDefaultExpressionsNotCacheableRequest() throws Exception
     {
         testHttpCachingMessageProcessorWithDefaultExpressions("not-cacheable-response-service", false);
     }
 
+    @Test
     public void testCustomExpressionsCacheableRequest() throws Exception
     {
         testHttpCachingMessageProcessorWithCustomExpressions("cacheable-response-service", true);
     }
 
+    @Test
     public void testCustomExpressionsNotCacheableRequest() throws Exception
     {
         testHttpCachingMessageProcessorWithCustomExpressions("not-cacheable-response-service", false);

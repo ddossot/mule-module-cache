@@ -7,13 +7,14 @@
  * license, a copy of which has been included with this distribution in the
  * LICENSE.txt file.
  */
+
 package org.mule.module.cache;
+
+import java.io.Serializable;
 
 import org.mule.api.DefaultMuleException;
 import org.mule.api.MuleEvent;
 import org.mule.api.MuleException;
-
-import java.io.Serializable;
 
 /**
  * Uses the Mule expression language to extract a key.
@@ -21,18 +22,19 @@ import java.io.Serializable;
 public class ExpressionKeyGenerator implements CacheKeyGenerator
 {
     private String expression;
-    
-    public Serializable generateKey(MuleEvent event) throws MuleException
+
+    public Serializable generateKey(final MuleEvent event) throws MuleException
     {
-        Object o = event.getMuleContext().getExpressionManager().evaluate(expression, event.getMessage());
+        final Object o = event.getMuleContext().getExpressionManager().evaluate(expression, event);
 
         if (o instanceof Serializable)
         {
-            return (Serializable)o;
+            return (Serializable) o;
         }
         else
         {
-            throw new DefaultMuleException("Cache key generator expression must return a serializable object.");
+            throw new DefaultMuleException(
+                "Cache key generator expression must return a serializable object.");
         }
     }
 
@@ -41,7 +43,7 @@ public class ExpressionKeyGenerator implements CacheKeyGenerator
         return expression;
     }
 
-    public void setExpression(String expression)
+    public void setExpression(final String expression)
     {
         this.expression = expression;
     }

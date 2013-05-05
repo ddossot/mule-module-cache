@@ -10,11 +10,14 @@
 
 package org.mule.module.cache;
 
+import static org.junit.Assert.assertEquals;
+
+import org.junit.Test;
 import org.mule.DefaultMuleMessage;
 import org.mule.api.MuleMessage;
 import org.mule.api.client.MuleClient;
 import org.mule.client.DefaultLocalMuleClient;
-import org.mule.tck.FunctionalTestCase;
+import org.mule.tck.junit4.FunctionalTestCase;
 
 public class ExpressionTest extends FunctionalTestCase
 {
@@ -22,19 +25,21 @@ public class ExpressionTest extends FunctionalTestCase
     String cacheable2 = "<root><cacheable>true</cacheable><key>2</key></root>";
     String notCacheable = "<root><cacheable>false</cacheable></root>";
 
+    @Test
     public void testExternalGenerator() throws Exception
     {
         testMessages("vm://test1");
     }
 
-    public void xtestExpressionInline() throws Exception
+    @Test
+    public void testExpressionInline() throws Exception
     {
         testMessages("vm://test2");
     }
 
-    public void testMessages(String endpoint) throws Exception
+    private void testMessages(final String endpoint) throws Exception
     {
-        MuleClient client = new DefaultLocalMuleClient(muleContext);
+        final MuleClient client = new DefaultLocalMuleClient(muleContext);
 
         MuleMessage msg = client.send(endpoint, new DefaultMuleMessage(cacheable1, muleContext));
         assertEquals(0, msg.getPayload());
@@ -61,5 +66,4 @@ public class ExpressionTest extends FunctionalTestCase
     {
         return "expression-config.xml";
     }
-
 }

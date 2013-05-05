@@ -24,6 +24,7 @@ import org.codehaus.httpcache4j.HTTPRequest;
 import org.codehaus.httpcache4j.HTTPResponse;
 import org.codehaus.httpcache4j.cache.AbstractMapBasedCacheStorage;
 import org.codehaus.httpcache4j.cache.CacheItem;
+import org.codehaus.httpcache4j.cache.DefaultCacheItem;
 import org.codehaus.httpcache4j.cache.Key;
 import org.codehaus.httpcache4j.payload.ByteArrayPayload;
 import org.codehaus.httpcache4j.payload.Payload;
@@ -31,8 +32,8 @@ import org.mule.api.store.ObjectStore;
 import org.mule.api.store.ObjectStoreException;
 
 /**
- * Allows HttpCache4J to use {@link ObjectStore} for persistence. Code has been partially lifted from
- * {@link org.codehaus.httpcache4j.cache.MemoryCacheStorage}.
+ * Allows HttpCache4J to use {@link ObjectStore} for persistence. Code has been partially lifted
+ * from {@link org.codehaus.httpcache4j.cache.MemoryCacheStorage}.
  */
 public class ObjectStoreHttpCacheStorage extends AbstractMapBasedCacheStorage
 {
@@ -115,10 +116,9 @@ public class ObjectStoreHttpCacheStorage extends AbstractMapBasedCacheStorage
         });
     }
 
-    @Override
-    protected HTTPResponse get(final Key key)
+    public CacheItem get(final Key key)
     {
-        return execute(new CacheAction<HTTPResponse>()
+        final HTTPResponse httpResponse = execute(new CacheAction<HTTPResponse>()
         {
             public HTTPResponse run(final HashMap<Key, CacheItem> cache) throws ObjectStoreException
             {
@@ -133,6 +133,8 @@ public class ObjectStoreHttpCacheStorage extends AbstractMapBasedCacheStorage
 
             }
         });
+
+        return new DefaultCacheItem(httpResponse);
     }
 
     public void invalidate(final URI uri)
@@ -224,7 +226,7 @@ public class ObjectStoreHttpCacheStorage extends AbstractMapBasedCacheStorage
 
     private CacheItem createCacheItem(final HTTPResponse pCacheableResponse)
     {
-        return new CacheItem(pCacheableResponse);
+        return new DefaultCacheItem(pCacheableResponse);
     }
 
     private void execute(final VoidCacheAction action)

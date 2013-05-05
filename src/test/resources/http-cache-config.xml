@@ -1,65 +1,81 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns="http://www.mulesoft.org/schema/mule/core"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:spring="http://www.springframework.org/schema/beans"
-       xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
-       xmlns:test="http://www.mulesoft.org/schema/mule/test"
-       xmlns:cache="http://www.mulesoft.org/schema/mule/cache"
-       xmlns:ehcache="http://www.springmodules.org/schema/ehcache"
-       xsi:schemaLocation="
-       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
-       http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.1/mule.xsd
-       http://www.mulesoft.org/schema/mule/test http://www.mulesoft.org/schema/mule/test/3.1/mule-test.xsd
-       http://www.mulesoft.org/schema/mule/cache http://www.mulesoft.org/schema/mule/cache/3.1/mule-cache.xsd
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:spring="http://www.springframework.org/schema/beans" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+    xmlns:test="http://www.mulesoft.org/schema/mule/test" xmlns:cache="http://www.mulesoft.org/schema/mule/cache"
+    xmlns:ehcache="http://www.springmodules.org/schema/ehcache"
+    xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+       http://www.mulesoft.org/schema/mule/test http://www.mulesoft.org/schema/mule/test/current/mule-test.xsd
+       http://www.mulesoft.org/schema/mule/cache http://www.mulesoft.org/schema/mule/cache/current/mule-cache.xsd
        http://www.springmodules.org/schema/ehcache http://www.springmodules.org/schema/cache/springmodules-ehcache.xsd
-       http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/3.1/mule-vm.xsd">
+       http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
 
     <spring:beans>
         <spring:bean id="httpCacheStore" class="org.mule.util.store.InMemoryObjectStore" />
     </spring:beans>
-    
+
     <flow name="DefaultExpressions">
-        <vm:inbound-endpoint path="default-expressions" exchange-pattern="request-response"/>
-        <cache:http-cache-processor objectStore-ref="httpCacheStore" /> 
-        <vm:outbound-endpoint path="#[header:INBOUND:target.service]" exchange-pattern="request-response"/>
+        <vm:inbound-endpoint path="default-expressions"
+            exchange-pattern="request-response" />
+        <cache:http-cache-processor objectStore-ref="httpCacheStore" />
+        <vm:outbound-endpoint path="#[header:INBOUND:target.service]"
+            exchange-pattern="request-response" />
     </flow>
-    
+
     <flow name="CustomExpressions">
-        <vm:inbound-endpoint path="custom-expressions" exchange-pattern="request-response"/>
+        <vm:inbound-endpoint path="custom-expressions"
+            exchange-pattern="request-response" />
         <cache:http-cache-processor objectStore-ref="httpCacheStore"
-                                    requestHttpMethodExpression="#[header:INBOUND:customHttpMethod]"
-                                    requestUriExpression="#[header:INBOUND:customUri]"
-                                    responseHttpStatusCodeExpression="#[header:INBOUND:customStatus]" /> 
-        <vm:outbound-endpoint path="#[header:INBOUND:target.service]" exchange-pattern="request-response"/>
+            requestHttpMethodExpression="#[header:INBOUND:customHttpMethod]"
+            requestUriExpression="#[header:INBOUND:customUri]"
+            responseHttpStatusCodeExpression="#[header:INBOUND:customStatus]" />
+        <vm:outbound-endpoint path="#[header:INBOUND:target.service]"
+            exchange-pattern="request-response" />
     </flow>
-    
+
     <flow name="CacheableResponseService">
-        <vm:inbound-endpoint path="cacheable-response-service" exchange-pattern="request-response"/>
+        <vm:inbound-endpoint path="cacheable-response-service"
+            exchange-pattern="request-response" />
         <response>
-            <message-properties-transformer scope="outbound">
-                <add-message-property key="http.status" value="200"/>
-                <add-message-property key="customStatus" value="200"/>
-                <add-message-property key="Content-Type" value="text/plain"/>
-                <add-message-property key="Date" value="Thu 5 May 2011 00:00:00 GMT" />
-                <add-message-property key="Expires" value="Wed, 31 Dec 2200 23:59:59 GMT" />
-                <add-message-property key="Cache-Control" value="max-age=3600" />
+            <message-properties-transformer
+                scope="outbound">
+                <add-message-property key="http.status"
+                    value="200" />
+                <add-message-property key="customStatus"
+                    value="200" />
+                <add-message-property key="Content-Type"
+                    value="text/plain" />
+                <add-message-property key="Date"
+                    value="Thu 5 May 2011 00:00:00 GMT" />
+                <add-message-property key="Expires"
+                    value="Wed, 31 Dec 2200 23:59:59 GMT" />
+                <add-message-property key="Cache-Control"
+                    value="max-age=3600" />
             </message-properties-transformer>
             <expression-transformer>
-                <return-argument evaluator="function" expression="uuid" />
+                <return-argument evaluator="function"
+                    expression="uuid" />
             </expression-transformer>
         </response>
     </flow>
-    
+
     <flow name="NotCacheableResponseService">
-        <vm:inbound-endpoint path="not-cacheable-response-service" exchange-pattern="request-response"/>
+        <vm:inbound-endpoint path="not-cacheable-response-service"
+            exchange-pattern="request-response" />
         <response>
-            <message-properties-transformer scope="outbound">
-                <add-message-property key="http.status" value="200"/>
-                <add-message-property key="customStatus" value="200"/>
-                <add-message-property key="Content-Type" value="text/plain"/>
+            <message-properties-transformer
+                scope="outbound">
+                <add-message-property key="http.status"
+                    value="200" />
+                <add-message-property key="customStatus"
+                    value="200" />
+                <add-message-property key="Content-Type"
+                    value="text/plain" />
             </message-properties-transformer>
             <expression-transformer>
-                <return-argument evaluator="function" expression="uuid" />
+                <return-argument evaluator="function"
+                    expression="uuid" />
             </expression-transformer>
         </response>
     </flow>
