@@ -14,9 +14,9 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 import org.mule.DefaultMuleMessage;
+import org.mule.api.MuleException;
 import org.mule.api.MuleMessage;
 import org.mule.api.client.MuleClient;
-import org.mule.client.DefaultLocalMuleClient;
 import org.mule.tck.junit4.FunctionalTestCase;
 
 public class MessageCacheTest extends FunctionalTestCase
@@ -24,18 +24,29 @@ public class MessageCacheTest extends FunctionalTestCase
     @Test
     public void testMessages() throws Exception
     {
-        final MuleClient client = new DefaultLocalMuleClient(muleContext);
+        testCache("vm://test");
+    }
 
-        MuleMessage msg = client.send("vm://test", new DefaultMuleMessage("test", muleContext));
+    @Test
+    public void testPayloadOnly() throws Exception
+    {
+        testCache("vm://testPayloadOnly");
+    }
+
+    private void testCache(final String vmEndpointUri) throws MuleException
+    {
+        final MuleClient client = muleContext.getClient();
+
+        MuleMessage msg = client.send(vmEndpointUri, new DefaultMuleMessage("test", muleContext));
         assertEquals(0, msg.getPayload());
 
-        msg = client.send("vm://test", new DefaultMuleMessage("test2", muleContext));
+        msg = client.send(vmEndpointUri, new DefaultMuleMessage("test2", muleContext));
         assertEquals(1, msg.getPayload());
 
-        msg = client.send("vm://test", new DefaultMuleMessage("test", muleContext));
+        msg = client.send(vmEndpointUri, new DefaultMuleMessage("test", muleContext));
         assertEquals(0, msg.getPayload());
 
-        msg = client.send("vm://test", new DefaultMuleMessage("test2", muleContext));
+        msg = client.send(vmEndpointUri, new DefaultMuleMessage("test2", muleContext));
         assertEquals(1, msg.getPayload());
     }
 

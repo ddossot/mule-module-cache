@@ -31,4 +31,15 @@
             </component>
         </cache:cache-processor>
     </flow>
+
+    <flow name="CacheRouterPayloadOnly">
+        <inbound-endpoint address="vm://testPayloadOnly" exchange-pattern="request-response" />
+        <cache:cache-processor cache-ref="ehcache"
+            payloadOnly="true" cachingModel-ref="cachingModel">
+            <component>
+                <singleton-object
+                    class="org.mule.module.cache.IncreasingNumberComponent" />
+            </component>
+        </cache:cache-processor>
+    </flow>
 </mule>

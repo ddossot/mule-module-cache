@@ -47,6 +47,7 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
     private String cacheableExpression;
     private String keyGeneratorExpression;
     private List<MessageProcessor> messageProcessors;
+    private boolean payloadOnly;
 
     protected MessageProcessor next;
 
@@ -135,25 +136,22 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
         }
 
         // see if we have a cached response
-        final MuleEvent cachedResponse = (MuleEvent) cacheProvider.getFromCache(key, cacheModel);
+        final Object cachedResponse = cacheProvider.getFromCache(key, cacheModel);
 
-        MuleEvent response;
         // nothing in the cache, invoke the MPs
         if (cachedResponse == null)
         {
-            response = processNext(event);
+            final MuleEvent response = processNext(event);
 
-            ensurePayloadIsNotConsumable(response);
+            cacheProvider.putInCache(key, cacheModel, getCacheableContent(response));
 
-            cacheProvider.putInCache(key, cacheModel, response);
+            return response;
         }
         else
         {
-            // return the cached event
-            clone(cachedResponse, event);
-            response = event;
+            setCachedContentOnEvent(cachedResponse, event);
+            return event;
         }
-        return response;
     }
 
     protected boolean isCacheable(final MuleEvent event)
@@ -167,8 +165,49 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
         return true;
     }
 
-    protected void ensurePayloadIsNotConsumable(final MuleEvent response)
-        throws MuleException, DefaultMuleException
+    protected Object getCacheableContent(final MuleEvent event) throws MuleException
+    {
+        ensurePayloadIsNotConsumable(event);
+
+        return isPayloadOnly() ? event.getMessage().getPayload() : event;
+    }
+
+    private void setCachedContentOnEvent(final Object cached, final MuleEvent event)
+    {
+        if (isPayloadOnly())
+        {
+            event.getMessage().setPayload(cached);
+            return;
+        }
+
+        final MuleMessage message = event.getMessage();
+        final MuleMessage cachedResponse = ((MuleEvent) cached).getMessage();
+
+        message.clearProperties(PropertyScope.INBOUND);
+        message.clearProperties(PropertyScope.INVOCATION);
+        message.clearProperties(PropertyScope.OUTBOUND);
+
+        // copy properties
+        for (final String s : cachedResponse.getInboundPropertyNames())
+        {
+            message.setProperty(s, cachedResponse.getInboundProperty(s), PropertyScope.INBOUND);
+        }
+
+        for (final String s : cachedResponse.getInvocationPropertyNames())
+        {
+            message.setProperty(s, cachedResponse.getInvocationProperty(s), PropertyScope.INVOCATION);
+        }
+
+        for (final String s : cachedResponse.getOutboundPropertyNames())
+        {
+            message.setProperty(s, cachedResponse.getOutboundProperty(s), PropertyScope.OUTBOUND);
+        }
+
+        // copy payload
+        message.setPayload(cachedResponse.getPayload());
+    }
+
+    protected void ensurePayloadIsNotConsumable(final MuleEvent response) throws MuleException
     {
         final Object payload = response.getMessage().getPayload();
         final boolean isStream = isStream(payload);
@@ -194,37 +233,6 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
     {
         return payload instanceof OutputHandler || payload instanceof InputStream
                || payload instanceof StreamSource;
-    }
-
-    private Object clone(final MuleEvent cached, final MuleEvent event)
-    {
-        final MuleMessage message = event.getMessage();
-        final MuleMessage cachedResponse = cached.getMessage();
-
-        message.clearProperties(PropertyScope.INBOUND);
-        message.clearProperties(PropertyScope.INVOCATION);
-        message.clearProperties(PropertyScope.OUTBOUND);
-
-        // copy properties
-        for (final String s : cachedResponse.getInboundPropertyNames())
-        {
-            message.setProperty(s, cachedResponse.getInboundProperty(s), PropertyScope.INBOUND);
-        }
-
-        for (final String s : cachedResponse.getInvocationPropertyNames())
-        {
-            message.setProperty(s, cachedResponse.getInvocationProperty(s), PropertyScope.INVOCATION);
-        }
-
-        for (final String s : cachedResponse.getOutboundPropertyNames())
-        {
-            message.setProperty(s, cachedResponse.getOutboundProperty(s), PropertyScope.OUTBOUND);
-        }
-
-        // copy payload
-        message.setPayload(cachedResponse.getPayload());
-
-        return message;
     }
 
     public void setCache(final CacheProviderFacade cacheProvider)
@@ -262,6 +270,16 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
         this.messageProcessors = messageProcessors;
     }
 
+    public void setPayloadOnly(final boolean payloadOnly)
+    {
+        this.payloadOnly = payloadOnly;
+    }
+
+    public boolean isPayloadOnly()
+    {
+        return payloadOnly;
+    }
+
     @Override
     protected List<MessageProcessor> getOwnedMessageProcessors()
     {
@@ -272,5 +290,4 @@ public class CachingMessageProcessor extends AbstractMessageProcessorOwner
     {
         next = listener;
     }
-
 }

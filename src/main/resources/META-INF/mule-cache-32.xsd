@@ -25,6 +25,7 @@
                 <xsd:attribute name="cacheableExpression" type="xsd:string" use="optional"/>
                 <xsd:attribute name="keyGenerator-ref" type="xsd:string" use="optional"/>
                 <xsd:attribute name="keyGeneratorExpression" type="xsd:string" use="optional"/>
+                <xsd:attribute name="payloadOnly" type="xsd:boolean" use="optional" default="false"/>
             </xsd:extension>
         </xsd:complexContent>
     </xsd:complexType>
